@@ -2,39 +2,37 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define NUM_THREADS    4
+
 //define barrier
 typedef struct {
     pthread_mutex_t c;
     pthread_cond_t ok;
     int count;} blue_barrier_t;
+
 //define thread_data
 struct thread_data{
     int thread_id;
-    int n;
-    int t;
-    int subsize;
-    int max_itrs;
-    float percent;
     int *board;
 };
+
 //create global varibles
 blue_barrier_t b;
+int n, t, k, max_itrs, NUM_THREADS;
 int stop = 0;
-struct thread_data thread_data_array[NUM_THREADS];
-//barrier initialize
+
+//define barrier initialize function
 void blue_barrier_init(blue_barrier_t *b) {
     b->count = 0;
     pthread_mutex_init(&(b->c), NULL);
     pthread_cond_init(&(b->ok), NULL);
 }
-//barrier destroy
+//define barrier destroy function
 void blue_barrier_destroy(blue_barrier_t *b) {
     pthread_mutex_destroy (&(b->c));
     pthread_cond_destroy (&(b->ok));
 
 }
-//barrier wait
+//define barrier wait function
 void blue_barrier_wait (blue_barrier_t *b) {
     pthread_mutex_lock(&b->c);
     b->count += 1;
@@ -46,11 +44,10 @@ void blue_barrier_wait (blue_barrier_t *b) {
         pthread_cond_wait(&b->ok,&b->c);
         pthread_mutex_unlock(&b->c);
     }
-    
-
 }
+
 /*initialize the board with nxn random int from 0-2*/
-void boardinit(int *grid, int n){
+void boardinit(int *grid){
     int i,j;
     for(i = 0;i < n;i++){
         for(j = 0;j<n;j++){
@@ -73,13 +70,45 @@ void *RedBlueComputation(void *threadarg){
     struct thread_data *my_data;
     my_data = (struct thread_data *) threadarg;
     int taskid = my_data->thread_id;
-    int n = my_data->n;
-    int t = my_data->t;
-    int subsize = my_data->subsize;
-    int max_itrs = my_data->max_itrs;
-    float percent = my_data->percent;
     int *board = my_data->board;
+    int subsize = n/NUM_THREADS;//number of rows for each threads
+    float percent = (float)k/(float)100;//termination specification
+    //parameters for termination check
+    p = (t*t)/NUM_THREADS;
+    q = (t*t)%NUM_THREADS;
+    int tilesize = (n/t)*(n/t);
+    int red, blue;
+    if(taskid < q){
+        for(a = taskid*(p+1); a < (taskid+1)*(p+1); a++){
+            red = 0;
+            blue = 0;
+            for(i = (a/t)*(n/t); i<((a/t)+1)*(n/t); i++){
+                for(j = (a%t)*(n/t); j<((a%t)+1)*(n/t); j++){
+                    if(board[i*n+j] == 1){red ++;}
+                    if(board[i*n+j] == 2){blue ++;}
+                }
+            }if(((float)red/(float)tilesize)>=percent || ((float)blue/(float)tilesize)>=percent){
+                stop = 1;
+                printf("tile number %d satisfied the termination requirement after %d iterations , red: %d, blue: %d.\n", a, n_itrs, red, blue);
+            }
 
+        }
+    }else{
+        for(a = q*(p+1)+(taskid-q)*p; a<q*(p+1)+(taskid-q)*p+p; a++){
+            red = 0;
+            blue = 0;
+            for(i = (a/t)*(n/t); i<((a/t)+1)*(n/t); i++){
+                for(j = (a%t)*(n/t); j<((a%t)+1)*(n/t); j++){
+                    if(board[i*n+j] == 1){red ++;}
+                    if(board[i*n+j] == 2){blue ++;}
+                }
+            }if(((float)red/(float)tilesize)>=percent || ((float)blue/(float)tilesize)>=percent){
+                stop = 1;
+                printf("tile number %d satisfied the termination requirement after %d iterations, red: %d, blue: %d.\n", a, n_itrs, red, blue);
+            }
+        }
+    }
+    blue_barrier_wait(&b);
     while(stop == 0 && n_itrs < max_itrs){
         n_itrs ++;
         //red movement
@@ -133,10 +162,6 @@ void *RedBlueComputation(void *threadarg){
             }
         }
         blue_barrier_wait(&b);
-        p = (t*t)/NUM_THREADS;
-        q = (t*t)%NUM_THREADS;
-        int tilesize = (n/t)*(n/t);
-        int red, blue;
         //seperate tiles to each threads and calculate percentage
         if(taskid < q){
             for(a = taskid*(p+1); a < (taskid+1)*(p+1); a++){
@@ -167,22 +192,36 @@ void *RedBlueComputation(void *threadarg){
                     printf("tile number %d satisfied the termination requirement after %d iterations, red: %d, blue: %d.\n", a, n_itrs, red, blue);
                 }
             }
-        }
-        blue_barrier_wait(&b);
+        }blue_barrier_wait(&b);
     }if(taskid == 0&& n_itrs == max_itrs){
         printf("parallelize computation terminate after %d iterations\n", n_itrs);
     }    
     pthread_exit(NULL);
 }
 
-void sequential(int *seqboard, int n, int t, int k, int max_itrs){
+void sequential(int *seqboard){
     printf("------Start sequential computation------\n");
     int i, j, a;
     int n_itrs = 0;
     int terminate = 0;
     float percent = (float)k/(float)100;
-
     while (terminate == 0 && n_itrs< max_itrs){
+        //check termination
+        int red, blue;
+        int tilesize = (n/t)*(n/t);
+        for(a = 0; a< t*t; a++){
+            red = 0;
+            blue = 0;
+            for(i = (a/t)*(n/t); i<((a/t)+1)*(n/t); i++){
+                for(j = (a%t)*(n/t); j<((a%t)+1)*(n/t); j++){
+                    if(seqboard[i*n+j] == 1){red ++;}
+                    if(seqboard[i*n+j] == 2){blue ++;}
+                }
+            }if(((float)red/(float)tilesize)>=percent || ((float)blue/(float)tilesize)>=percent){
+                terminate = 1;
+                printf("tile number %d satisfied the termination requirement after %d iterations red: %d, blue: %d \n", a, n_itrs, red, blue);
+            }
+        }
         n_itrs ++;
         //red movement
         for(i = 0;i<n; i++){
@@ -215,29 +254,11 @@ void sequential(int *seqboard, int n, int t, int k, int max_itrs){
                         seqboard[j] = 3;
                     }
                 }
-            }
-            
+            }   
         }
-        
         for(i = 0; i<n*n; i++){
             if(seqboard[i] == 4){seqboard[i] = 0;}
             if(seqboard[i] == 3){seqboard[i] = 2;}
-        }
-        //check termination
-        int red, blue;
-        int tilesize = (n/t)*(n/t);
-        for(a = 0; a< t*t; a++){
-            red = 0;
-            blue = 0;
-            for(i = (a/t)*(n/t); i<((a/t)+1)*(n/t); i++){
-                for(j = (a%t)*(n/t); j<((a%t)+1)*(n/t); j++){
-                    if(seqboard[i*n+j] == 1){red ++;}
-                    if(seqboard[i*n+j] == 2){blue ++;}
-                }
-            }if(((float)red/(float)tilesize)>=percent || ((float)blue/(float)tilesize)>=percent){
-                terminate = 1;
-                printf("tile number %d satisfied the termination requirement after %d iterations red:%d, blue:%d \n", a, n_itrs, red, blue);
-            }
         }
     }
     if(n_itrs == max_itrs){
@@ -253,34 +274,31 @@ void sequential(int *seqboard, int n, int t, int k, int max_itrs){
 }
 
 int main(int argc, char *argv[]){
-    pthread_t threads[NUM_THREADS];
+    //initialize parameters and arguments
     int rc, i, j;
-    int n = atoi(argv[1]);
-    int t = atoi(argv[2]);
-    int k = atoi(argv[3]);
-    int max_itrs = atoi(argv[4]);
-    int subsize = n/NUM_THREADS;
-    float percent = (float)k/(float)100;
+    NUM_THREADS = atoi(argv[1]);
+    n = atoi(argv[2]);
+    t = atoi(argv[3]);
+    k = atoi(argv[4]);
+    max_itrs = atoi(argv[5]);
+    pthread_t threads[NUM_THREADS];
+    struct thread_data thread_data_array[NUM_THREADS];
     //initialize board and barrier
     int *board = calloc(n*n,sizeof(int));
     int *seqboard = calloc(n*n,sizeof(int));
-    boardinit(board,n);
+    boardinit(board);
+    //copy the board for sequential evaluation
     for(i = 0;i<n*n; i++){
         seqboard[i] = board[i];
     }
+    //initialize barrier
     blue_barrier_init(&b);
-
     //create threads and passing messages
     printf("-----------start parallelize----------\n");
     for(i=0;i<NUM_THREADS;i++) {
         thread_data_array[i].thread_id = i;
-        thread_data_array[i].n = n;
-        thread_data_array[i].t = t;
-        thread_data_array[i].subsize = subsize;
-        thread_data_array[i].max_itrs = max_itrs;
-        thread_data_array[i].percent = percent;
         thread_data_array[i].board = board;
-        printf("Creating thread %d\n", i);
+        printf("Creating thread %d......\n", i);
         rc = pthread_create(&threads[i], NULL, RedBlueComputation, (void *)
                             &thread_data_array[i]);
         
@@ -300,8 +318,8 @@ int main(int argc, char *argv[]){
             printf("%d ",board[i*n+j]);
         }printf("\n");
     }printf("----------------------------------------\n");
-
-    sequential(seqboard, n, t, k, max_itrs);
+    //free all the memory and destroy the barriers
+    sequential(seqboard);
     free(board);
     free(seqboard);
     blue_barrier_destroy(&b);
