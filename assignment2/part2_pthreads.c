@@ -63,7 +63,7 @@ void boardinit(int *grid){
     printf("--------------------------------\n");
 }
 
-/* white = 0, red = 1, blue = 2, red just move in = 3, blue just move in = 4just move out = 4*/
+/* white = 0, red = 1, blue = 2, just move in = 3, just move out = 4*/
 void *RedBlueComputation(void *threadarg){
     int i, j, a, p, q;
     int n_itrs = 0;
@@ -205,23 +205,24 @@ void sequential(int *seqboard){
     int n_itrs = 0;
     int terminate = 0;
     float percent = (float)k/(float)100;
-    while (terminate == 0 && n_itrs< max_itrs){
-        //check termination
-        int red, blue;
-        int tilesize = (n/t)*(n/t);
-        for(a = 0; a< t*t; a++){
-            red = 0;
-            blue = 0;
-            for(i = (a/t)*(n/t); i<((a/t)+1)*(n/t); i++){
-                for(j = (a%t)*(n/t); j<((a%t)+1)*(n/t); j++){
-                    if(seqboard[i*n+j] == 1){red ++;}
-                    if(seqboard[i*n+j] == 2){blue ++;}
-                }
-            }if(((float)red/(float)tilesize)>=percent || ((float)blue/(float)tilesize)>=percent){
-                terminate = 1;
-                printf("tile number %d satisfied the termination requirement after %d iterations red: %d, blue: %d \n", a, n_itrs, red, blue);
+    int red, blue;
+    int tilesize = (n/t)*(n/t);
+    //check termination
+    for(a = 0; a< t*t; a++){
+        red = 0;
+        blue = 0;
+        for(i = (a/t)*(n/t); i<((a/t)+1)*(n/t); i++){
+            for(j = (a%t)*(n/t); j<((a%t)+1)*(n/t); j++){
+                if(seqboard[i*n+j] == 1){red ++;}
+                if(seqboard[i*n+j] == 2){blue ++;}
             }
+        }if(((float)red/(float)tilesize)>=percent || ((float)blue/(float)tilesize)>=percent){
+            terminate = 1;
+            printf("tile number %d satisfied the termination requirement after %d iterations red: %d, blue: %d \n", a, n_itrs, red, blue);
         }
+    }
+    while (terminate == 0 && n_itrs< max_itrs){
+        
         n_itrs ++;
         //red movement
         for(i = 0;i<n; i++){
@@ -259,6 +260,20 @@ void sequential(int *seqboard){
         for(i = 0; i<n*n; i++){
             if(seqboard[i] == 4){seqboard[i] = 0;}
             if(seqboard[i] == 3){seqboard[i] = 2;}
+        }
+        //check termination
+        for(a = 0; a< t*t; a++){
+            red = 0;
+            blue = 0;
+            for(i = (a/t)*(n/t); i<((a/t)+1)*(n/t); i++){
+                for(j = (a%t)*(n/t); j<((a%t)+1)*(n/t); j++){
+                    if(seqboard[i*n+j] == 1){red ++;}
+                    if(seqboard[i*n+j] == 2){blue ++;}
+                }
+            }if(((float)red/(float)tilesize)>=percent || ((float)blue/(float)tilesize)>=percent){
+                terminate = 1;
+                printf("tile number %d satisfied the termination requirement after %d iterations red: %d, blue: %d \n", a, n_itrs, red, blue);
+            }
         }
     }
     if(n_itrs == max_itrs){
