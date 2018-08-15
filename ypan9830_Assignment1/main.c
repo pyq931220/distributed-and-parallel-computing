@@ -29,7 +29,7 @@ int* boardinit(int *grid, int n){
     printf("\n");
     for(i = 0;i<n;i++){
         for(j = 0;j< n;j++){
-            printf("%d",grid[i*n+j]);
+            printf(" %d",grid[i*n+j]);
         }printf("\n");
     }
     for(i = 0;i<n;i++){
@@ -97,7 +97,7 @@ int sequential(int * board, int n,int t,int k,int MAX_ITRS) {
             for(j = 0;j<n;j++){
                 if(grid[i][j]==4){grid[i][j] = 2;}
                 if(grid[i][j]==5){grid[i][j] = 0;}
-                printf("%d",grid[i][j]);
+                printf("%d ",grid[i][j]);
             }
             printf("\n");
         }
@@ -118,7 +118,7 @@ int sequential(int * board, int n,int t,int k,int MAX_ITRS) {
                     /*print out the tiles that meet the requirement*/
                     for(p = i*(n/t);p<(i+1)*(n/t);p++){
                         for(q = j*(n/t);q<(j+1)*(n/t);q++){
-                            printf("%d",grid[p][q]);
+                            printf("%d ",grid[p][q]);
                         }
                         printf("\n");
                     }
@@ -280,7 +280,7 @@ int main (int argc, char** argv) {
                 printf("---Parallel: iteration NO. %d---\n", n_itrs);
                 for(i = 0;i<n;i++){
                     for(j = 0;j<n;j++){
-                        printf("%d",board[i*n+j]);
+                        printf("%d ",board[i*n+j]);
                     }printf("\n");
                 }printf("\n");
                 /*set barrier to let all processors finish movement before checking*/
@@ -301,7 +301,7 @@ int main (int argc, char** argv) {
                             stop = 1;
                             for (ct1 = tg*i; ct1<tg*(i + 1);ct1++){
                                 for (ct2 = tg*j; ct2<tg*(j + 1); ct2++){
-                                    printf("%d",subboard[ct1*n+ct2]);
+                                    printf(" %d",subboard[ct1*n+ct2]);
                                 }printf("\n");
                             }printf("------\n");
                         }
@@ -400,7 +400,7 @@ int main (int argc, char** argv) {
                         if (red > c*tg*tg ||blue > c*tg*tg){
                             for (ct1 = tg*i; ct1<tg*(i + 1);ct1++){
                                 for (ct2 = tg*j; ct2<tg*(j + 1); ct2++){/*print out the tiles that meet the requirement*/
-                                    printf("%d",subboard[ct1*n+ct2]);
+                                    printf("%d ",subboard[ct1*n+ct2]);
                                 }printf("\n");
                             }printf("------\n");
                             stop = 1;
